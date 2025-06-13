@@ -1,103 +1,169 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import AuthControls from '@/components/AuthControls';
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
+import { getMessages } from '@/lib/firestore'; // Adjust the import based on your project structure
+import { saveMessage } from "@/lib/firestore"; // adjust path if needed
+
+// At the top of your component (after imports)
+const availableModels = [
+  { name: 'GPT-3.5 Turbo', value: 'openai/gpt-3.5-turbo' },
+  { name: 'GPT-4', value: 'openai/gpt-4' },
+  { name: 'Claude 3 Sonnet', value: 'anthropic/claude-3-sonnet:beta' },
+  { name: 'Claude 3 Haiku', value: 'anthropic/claude-3-haiku:beta' },
+  { name: 'Mistral 7B Instruct', value: 'mistralai/mistral-7b-instruct:free' },
+];
+
+type Message = {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export default function HomePage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [model, setModel] = useState(availableModels[0].value);
+  //rename data field to session for clarity
+  const { data: session } = useSession();
+  console.log('Session:', session);
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (session?.user?.id) {
+        // Logged-in: Load from Firestore
+        const firestoreMessages = await getMessages(session.user.id);
+        setMessages(
+          firestoreMessages.map((msg, i) => ({
+            id: Date.now() + i, // Give each a temporary ID
+            ...msg,
+          }))
+        );
+        // Clear guest data if user logs in
+        if (session?.user?.id) {
+          localStorage.removeItem("chat_messages");
+        }
+      } else {
+        // Guest: Load from localStorage
+        const local = localStorage.getItem("chat_messages");
+        if (local) {
+          try {
+            setMessages(JSON.parse(local));
+          } catch (err) {
+            console.error("Invalid messages in localStorage");
+          }
+        }
+      }
+    };
+
+    loadMessages();
+  }, [session]);
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      localStorage.setItem("chat_messages", JSON.stringify(messages));
+    }
+  }, [messages, session]);
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newUserMessage: Message = {
+      id: Date.now(),
+      role: 'user',
+      content: input,
+    };
+
+    setMessages((prev) => [...prev, newUserMessage]);
+    setInput('');
+    // 🔐 Save user message to Firestore (if logged in)
+    if (session?.user?.id) {
+      await saveMessage(session.user.id, {
+        role: 'user',
+        content: input,
+      });
+    }
+
+    // 🧠 Call your API here to get assistant reply
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ model, messages: [...messages, { role: 'user', content: input }] }),
+    });
+    const data = await res.json();
+
+    const newAssistantMessage: Message = {
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: data.reply,
+    };
+
+    setMessages((prev) => [...prev, newAssistantMessage]);
+    // 🔐 Save assistant message to Firestore (if logged in)
+    if (session?.user?.id) {
+      await saveMessage(session.user.id, {
+        role: 'assistant',
+        content: data.reply,
+      });
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="flex flex-col h-screen p-4 bg-gray-100">
+      <AuthControls />
+      <select
+        className="mb-4 p-2 border rounded bg-yellow-100"
+        value={model}
+        onChange={(e) => setModel(e.target.value)}
+      >
+        {availableModels.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.name}
+          </option>
+        ))}
+      </select>
+      {/* <div className="flex-1 overflow-y-auto space-y-2">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`p-2 rounded ${msg.role === 'user' ? 'bg-blue-200 self-end' : 'bg-gray-300 self-start'
+              }`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            {msg.content}
+          </div>
+        ))}
+      </div> */}
+      <div className="flex-1 overflow-y-auto space-y-2 bg-white p-2 rounded shadow-inner">
+  {messages.map((msg) => (
+    <div
+      key={msg.id}
+      className={`p-2 rounded max-w-[70%] whitespace-pre-wrap ${
+        msg.role === 'user' ? 'bg-blue-200 self-end ml-auto' : 'bg-gray-300 self-start mr-auto'
+      }`}
+    >
+      <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
     </div>
+  ))}
+</div>
+
+
+      <form className="flex mt-4" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+          className="flex-1 border rounded px-3 py-2"
+        />
+        <button
+          type="submit"
+          className="ml-2 px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Send
+        </button>
+      </form>
+    </main>
   );
 }
