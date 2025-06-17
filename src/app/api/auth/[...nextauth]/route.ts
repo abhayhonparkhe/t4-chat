@@ -1,12 +1,8 @@
 import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
-import type { NextAuthOptions } from "next-auth";
+import type { AuthOptions } from "next-auth"
 
-export const config = {
-  runtime: 'edge',
-}
-
-const authConfig: NextAuthOptions = {
+const config: AuthOptions = {
   providers: [
     GitHub({
       clientId: process.env.GITHUB_ID!,
@@ -15,11 +11,15 @@ const authConfig: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, token }) {
-      session.user.id = token.sub // add user ID to session
+      if (session.user) {
+        session.user.id = token.sub
+      }
       return session
-    },
-  },
+    }
+  }
 }
 
-const handler = NextAuth(authConfig)
-export { handler as GET, handler as POST }
+const handler = NextAuth(config)
+
+export const GET = handler
+export const POST = handler
