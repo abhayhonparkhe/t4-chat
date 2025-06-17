@@ -43,7 +43,9 @@ export default [
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_'
       }],
-      'next/core-web-vitals': 'error'
+      'next/core-web-vitals': 'error',
+      'no-unused-vars': 'warn',
+      'no-console': 'warn'
     }
   }
 ];

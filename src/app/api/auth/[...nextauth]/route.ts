@@ -1,6 +1,20 @@
 import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
 import type { AuthOptions } from "next-auth"
+import type { JWT } from "next-auth/jwt"
+
+interface SessionUser {
+  id?: string;
+  name?: string;
+  email?: string;
+  image?: string;
+}
+
+interface ExtendedSession {
+  user?: SessionUser;
+  openRouterKey?: string;
+  expires: string;
+}
 
 const config: AuthOptions = {
   providers: [
@@ -10,11 +24,13 @@ const config: AuthOptions = {
     })
   ],
   callbacks: {
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub
+    async session({ session, token }: { session: ExtendedSession; token: JWT }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+        // Add OpenRouter API key to session
+        session.openRouterKey = process.env.OPENROUTER_API_KEY;
       }
-      return session
+      return session;
     }
   }
 }

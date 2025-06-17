@@ -1,7 +1,7 @@
 # T4 Chat - T3 Chat Clone
 
 developed using i3 12 gen acer laptop
-twiter - https://x.com/abhay_honparkhe
+twitter - https://x.com/abhay_honparkhe
 
 A modern AI chat application inspired by T3 Chat, featuring an elegant Apple-style design, multiple AI models, and real-time chat synchronization. Built for the T3 Chat Cloneathon with a focus on user experience and aesthetic appeal.
 
@@ -46,17 +46,23 @@ npm install
 3. Configure environment variables:
 ```bash
 # Create .env.local with:
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
 
-GITHUB_ID=
-GITHUB_SECRET=
-NEXTAUTH_SECRET=
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+
+# Authentication (GitHub)
+GITHUB_ID=your_github_oauth_client_id
+GITHUB_SECRET=your_github_oauth_client_secret
 NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
+
+# OpenRouter API (for AI models)
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 4. Run the development server:
@@ -64,107 +70,41 @@ NEXTAUTH_URL=http://localhost:3000
 npm run dev
 ```
 
-## 🛠️ Tech Stack
+5. Visit [http://localhost:3000](http://localhost:3000)
 
-```json
-{
-  "frontend": {
-    "framework": "Next.js 15.3.3",
-    "ui": [
-      "React 19",
-      "TailwindCSS 4",
-      "Lucide Icons"
-    ]
-  },
-  "backend": {
-    "database": "Firebase/Firestore",
-    "auth": "NextAuth.js",
-    "ai": "Various AI Model APIs"
-  },
-  "deployment": {
-    "hosting": "Vercel",
-    "database": "Firebase"
-  }
-}
-```
+## 🔒 Environment Variables
 
-## 📦 Dependencies
+### Required Variables:
 
-```json
-{
-  "core": {
-    "next": "15.3.3",
-    "react": "^19.0.0",
-    "firebase": "^11.9.1",
-    "next-auth": "^4.24.11"
-  },
-  "ui": {
-    "lucide-react": "^0.513.0",
-    "tailwindcss": "^4",
-    "tw-animate-css": "^1.3.4"
-  },
-  "utilities": {
-    "date-fns": "^4.1.0",
-    "lodash": "^4.17.21"
-  }
-}
-```
+1. **Firebase Configuration**
+   - Get these from your Firebase Console under Project Settings
+   - All `NEXT_PUBLIC_FIREBASE_*` variables are required for Firestore functionality
 
-## 🗄️ Project Structure
+2. **GitHub Authentication**
+   - Create a new OAuth App in GitHub Developer Settings
+   - Set Homepage URL to `http://localhost:3000` (development)
+   - Set Authorization callback URL to `http://localhost:3000/api/auth/callback/github`
+   - Use the provided Client ID and Secret
 
-```
-src/
-├── app/                # Next.js app router
-│   ├── api/           # API routes
-│   ├── layout.tsx     # Root layout
-│   └── page.tsx       # Main chat interface
-├── components/        # React components
-│   ├── Sidebar.tsx    # Chat sidebar
-│   └── ...           # Other components
-├── lib/              # Firebase setup
-└── types/            # TypeScript types
-```
+3. **NextAuth Configuration**
+   - `NEXTAUTH_URL`: Your app's base URL (e.g., http://localhost:3000)
+   - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
 
-## 🎨 UI Features
-
-- Frosted glass sidebar
-- Apple-style message bubbles
-- Smooth transitions
-- Responsive design
-- Dark mode optimized
-- Loading animations
-
-## 🔐 Authentication
-
-- GitHub OAuth integration
-- Persistent sessions
-- Secure user data handling
-- Guest mode support
-
-## 💾 Data Persistence
-
-- Firebase Firestore for data storage
-- Real-time updates
-- Message history
-- User preferences
-- Chat synchronization
+4. **OpenRouter API**
+   - Sign up at [OpenRouter](https://openrouter.ai/)
+   - Get your API key from the dashboard
+   - Required for accessing all AI models
 
 ## 🚀 Deployment
 
-The app is configured for deployment on Vercel with Firebase backend.
+This project is optimized for deployment on Vercel:
+
+1. Fork this repository
+2. Create a new project on Vercel
+3. Connect your forked repository
+4. Configure environment variables in Vercel's dashboard
+5. Deploy!
 
 ## 📝 License
 
-MIT License
-
-## 🙋‍♂️ Author
-
-Abhay Honparkhe
-- GitHub: [@abhayhonparkhe](https://github.com/abhayhonparkhe)
-
-## 🙏 Acknowledgments
-
-- T3 Chat team for the inspiration
-- NextAuth.js for authentication
-- Firebase for backend services
-- Vercel for hosting
+MIT License - see the [LICENSE](LICENSE) file for details
