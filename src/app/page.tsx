@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Message, Chat } from '@/types/chat';
 import Sidebar from '@/components/Sidebar';
@@ -24,8 +24,6 @@ export default function HomePage() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const { data: session } = useSession();
-  const [model] = useState('gpt-3.5-turbo');
-  const [showModels, setShowModels] = useState(false);
   const [selectedModel, setSelectedModel] = useState(availableModels[0]); // Set default model
   const [isOpen, setIsOpen] = useState(false);
 
@@ -39,12 +37,13 @@ export default function HomePage() {
     }
   }, [session?.user?.id]);
 
-  const loadMessages = async (chatId: string) => {
+  // Wrap loadMessages in useCallback
+  const loadMessages = useCallback(async (chatId: string) => {
     setIsLoadingMessages(true);
     try {
       if (session?.user?.id) {
         const loadedMessages = await getMessages(session.user.id, chatId);
-        console.log('Loaded messages:', loadedMessages); // Add this log
+        console.log('Loaded messages:', loadedMessages);
         setMessages(loadedMessages);
       } else {
         const localMessages = JSON.parse(localStorage.getItem('local_chat_messages') || '{}');
@@ -56,17 +55,17 @@ export default function HomePage() {
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, [session?.user?.id]); // Only depend on session user ID
 
+  // Update the useEffect to remove loadMessages from dependencies
   useEffect(() => {
     if (currentChatId) {
       loadMessages(currentChatId);
-      // Save last selected chat for guest users
       if (!session?.user?.id) {
         localStorage.setItem('lastChatId', currentChatId);
       }
     }
-  }, [currentChatId, session?.user?.id]);
+  }, [currentChatId, session?.user?.id]); // Remove loadMessages from here
 
   const saveGuestChat = (chatId: string, message: string, isNew = false) => {
     const localChats = JSON.parse(localStorage.getItem('local_chats') || '[]');
@@ -209,6 +208,15 @@ export default function HomePage() {
     }
   }, [currentChatId]);
 
+  // Adjust textarea height
+  useEffect(() => {
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
+  }, [input]);
+
   const sidebarProps = {
     onChatSelect: setCurrentChatId,
     onNewChat: () => {
@@ -291,18 +299,18 @@ export default function HomePage() {
 
             {/* Message Input */}
             <div className="flex-1 relative">
-              <input
-                type="text"
+              <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
-                className="w-full h-12 pl-4 pr-12 glass-input rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/20"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSubmit(e);
                   }
                 }}
+                placeholder="Type a message..."
+                className="w-full min-h-[48px] max-h-[200px] pl-4 pr-12 glass-input rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 resize-none overflow-y-auto"
+                rows={1}
               />
               <button
                 onClick={handleSubmit}

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { getChats, deleteChat } from "@/lib/firestore";
 import { Chat } from "@/types/chat";
-import { formatDistanceToNow } from "date-fns";
 import { debounce } from "lodash";
 import {
   Plus,
