@@ -1,6 +1,7 @@
 # T4 Chat - T3 Chat Clone
 
 developed using i3 12 gen acer laptop
+twiter - https://x.com/abhay_honparkhe
 
 A modern AI chat application inspired by T3 Chat, featuring an elegant Apple-style design, multiple AI models, and real-time chat synchronization. Built for the T3 Chat Cloneathon with a focus on user experience and aesthetic appeal.
 
