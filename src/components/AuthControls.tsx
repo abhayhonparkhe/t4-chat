@@ -6,8 +6,8 @@ export default function AuthControls() {
   const { data: session } = useSession()
 
   return session ? (
-    <div>
-      <Image src={session?.user?.image!} alt={session?.user?.name!} width={50} height={50}></Image>
+    <div className="bg-[#202020] border-b-black border-t-[#565353] border-b border-t text-white">
+      <Image className="rounded-full" src={session?.user?.image!} alt={session?.user?.name!} width={50} height={50}></Image>
       <p>Welcome {session?.user?.name}</p>
       <button onClick={() => signOut()}>Sign Out</button>
     </div>

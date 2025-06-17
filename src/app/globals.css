@@ -1,3 +1,331 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+
+
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+} 
+
+body {
+  min-height: 100vh;
+  background: #1e1e1e;
+}
+
+/* Updated background with darker gradient */
+.bg-image {
+  background: linear-gradient(to bottom, 
+    rgba(18, 18, 18, 0.95),
+    rgba(28, 28, 28, 0.95)
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-effect {
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 30px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.main-bg {
+  background-image: url('/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.sidebar-bg {
+  background-image: url('/bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(20px);
+  transform: scale(1.1);
+  overflow: hidden;
+}
+
+.glass-sidebar {
+  background: rgba(28, 28, 28, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.border-glass {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Chat Bubbles - simplified */
+.chat-bubble-right {
+  background: #0084ff;
+  border-radius: 16px 16px 4px 16px;
+  margin-right: 8px;
+}
+
+.chat-bubble-left {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px 16px 16px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-left: 8px;
+}
+
+/* Remove any previous ::after pseudo-elements */
+.chat-bubble-right::after,
+.chat-bubble-left::after {
+  display: none;
+}
+
+.chat-list-item {
+  transition: all 0.2s ease;
+  margin: 0 0 8px 0; /* Removed horizontal margin, kept bottom margin */
+  padding: 10px 12px;
+  border: 1px solid transparent;
+}
+
+.chat-list-item.active {
+  background: #0084ff;
+  box-shadow: 0 2px 8px rgba(0, 132, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-list-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08); /* Changed to white accent for hover */
+}
+
+/* Scrollbar styles */
+.glass-effect ::-webkit-scrollbar-thumb {
+  background: rgb(255, 255, 255);
+  border-radius: 10px;
+}
+
+.glass-effect ::-webkit-scrollbar {
+  width: 5px;
+}
+
+.glass-effect ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glass-search {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px 8px 36px;
+  position: relative;
+  width: 100%; /* Ensure full width */
+}
+
+/* Search icon positioning */
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1; /* Ensure icon stays above */
+}
+
+/* Search input placeholder fix */
+.glass-search::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* GitHub sign in button styling - full width */
+.github-signin {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 16px; /* Slightly increased vertical padding */
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center content */
+  gap: 8px;
+  width: 100%; /* Full width */
+  margin: 8px 0; /* Add some vertical spacing */
+}
+
+.github-signin:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+.github-signin:active {
+  transform: translateY(0px);
+}
+
+/* Optional: Add some nice transitions */
+@layer utilities {
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
+/* Apple-style input area */
+.input-container {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Beautiful model selector dropdown */
+.model-selector {
+  background: rgba(28, 28, 28, 0.95); /* More solid background */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Model selector button */
+.model-select-button {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 17px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.model-select-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Model selector popup */
+.model-selector-popup {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 28, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  width: 90%;
+  max-width: 400px;
+  z-index: 50;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.model-selector-option {
+  padding: 12px;
+  margin: 4px 0;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.model-selector-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.model-selector-option.selected {
+  background: #0084ff;
+  color: #fff;
+}
+
+/* Backdrop */
+.model-selector-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 40;
+}
+
+/* Position the selector above the backdrop */
+.model-selector-container {
+  position: relative;
+  z-index: 41;
+}
+
+.submit-button {
+  background: #0084ff;
+  border-radius: 50%;
+  padding: 10px;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 
+    0 2px 8px rgba(0, 132, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.submit-button:hover {
+  background: #0074e0;
+  transform: scale(1.05);
+}
+
+.submit-button:active {
+  transform: scale(0.95);
+}
+
+/* Updated glass input style */
+.glass-input {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: none;
+  border-radius: 20px;
+  padding: 12px 20px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}

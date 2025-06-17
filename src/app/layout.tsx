@@ -30,6 +30,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
+          {/* SVG FILTER FOR REFRACTION */}
+        <svg className="hidden">
+        <filter id="refraction">
+          <feTurbulence type="turbulence" baseFrequency="0.01" numOctaves="1" result="turbulence" />
+          <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="5" />
+        </filter>
+      </svg>
           {children}
         </Providers>
       </body>

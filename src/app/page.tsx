@@ -1,13 +1,13 @@
 'use client';
 
-import AuthControls from '@/components/AuthControls';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useEffect } from 'react';
-import { getMessages } from '@/lib/firestore'; // Adjust the import based on your project structure
-import { saveMessage } from "@/lib/firestore"; // adjust path if needed
+import { Message, Chat } from '@/types/chat';
+import Sidebar from '@/components/Sidebar';
+import { getMessages, saveMessage, createNewChat } from '@/lib/firestore';
+import ClientOnly from '@/components/ClientOnly';
+import { Bot, Send, ChevronDown } from 'lucide-react';
 
-// At the top of your component (after imports)
 const availableModels = [
   { name: 'GPT-3.5 Turbo', value: 'openai/gpt-3.5-turbo' },
   { name: 'GPT-4', value: 'openai/gpt-4' },
@@ -16,154 +16,309 @@ const availableModels = [
   { name: 'Mistral 7B Instruct', value: 'mistralai/mistral-7b-instruct:free' },
 ];
 
-type Message = {
-  id: number;
-  role: 'user' | 'assistant';
-  content: string;
-};
-
 export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [model, setModel] = useState(availableModels[0].value);
-  //rename data field to session for clarity
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const { data: session } = useSession();
-  console.log('Session:', session);
-  useEffect(() => {
-    const loadMessages = async () => {
-      if (session?.user?.id) {
-        // Logged-in: Load from Firestore
-        const firestoreMessages = await getMessages(session.user.id);
-        setMessages(
-          firestoreMessages.map((msg, i) => ({
-            id: Date.now() + i, // Give each a temporary ID
-            ...msg,
-          }))
-        );
-        // Clear guest data if user logs in
-        if (session?.user?.id) {
-          localStorage.removeItem("chat_messages");
-        }
-      } else {
-        // Guest: Load from localStorage
-        const local = localStorage.getItem("chat_messages");
-        if (local) {
-          try {
-            setMessages(JSON.parse(local));
-          } catch (err) {
-            console.error("Invalid messages in localStorage");
-          }
-        }
-      }
-    };
+  const [model] = useState('gpt-3.5-turbo');
+  const [showModels, setShowModels] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(availableModels[0]); // Set default model
+  const [isOpen, setIsOpen] = useState(false);
 
-    loadMessages();
-  }, [session]);
-
+  // Load initial chat history for guest users
   useEffect(() => {
     if (!session?.user?.id) {
-      localStorage.setItem("chat_messages", JSON.stringify(messages));
+      const lastChatId = localStorage.getItem('lastChatId');
+      if (lastChatId) {
+        setCurrentChatId(lastChatId);
+      }
     }
-  }, [messages, session]);
+  }, [session?.user?.id]);
 
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const newUserMessage: Message = {
-      id: Date.now(),
-      role: 'user',
-      content: input,
-    };
-
-    setMessages((prev) => [...prev, newUserMessage]);
-    setInput('');
-    // 🔐 Save user message to Firestore (if logged in)
-    if (session?.user?.id) {
-      await saveMessage(session.user.id, {
-        role: 'user',
-        content: input,
-      });
-    }
-
-    // 🧠 Call your API here to get assistant reply
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({ model, messages: [...messages, { role: 'user', content: input }] }),
-    });
-    const data = await res.json();
-
-    const newAssistantMessage: Message = {
-      id: Date.now() + 1,
-      role: 'assistant',
-      content: data.reply,
-    };
-
-    setMessages((prev) => [...prev, newAssistantMessage]);
-    // 🔐 Save assistant message to Firestore (if logged in)
-    if (session?.user?.id) {
-      await saveMessage(session.user.id, {
-        role: 'assistant',
-        content: data.reply,
-      });
+  const loadMessages = async (chatId: string) => {
+    setIsLoadingMessages(true);
+    try {
+      if (session?.user?.id) {
+        const loadedMessages = await getMessages(session.user.id, chatId);
+        console.log('Loaded messages:', loadedMessages); // Add this log
+        setMessages(loadedMessages);
+      } else {
+        const localMessages = JSON.parse(localStorage.getItem('local_chat_messages') || '{}');
+        setMessages(localMessages[chatId] || []);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
+    } finally {
+      setIsLoadingMessages(false);
     }
   };
 
+  useEffect(() => {
+    if (currentChatId) {
+      loadMessages(currentChatId);
+      // Save last selected chat for guest users
+      if (!session?.user?.id) {
+        localStorage.setItem('lastChatId', currentChatId);
+      }
+    }
+  }, [currentChatId, session?.user?.id]);
+
+  const saveGuestChat = (chatId: string, message: string, isNew = false) => {
+    const localChats = JSON.parse(localStorage.getItem('local_chats') || '[]');
+    const timestamp = new Date();
+    
+    if (isNew) {
+      const newChat: Chat = {
+        id: chatId,
+        title: message.slice(0, 30),
+        lastMessage: message,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      localChats.unshift(newChat);
+    } else {
+      const chatIndex = localChats.findIndex((chat: Chat) => chat.id === chatId);
+      if (chatIndex !== -1) {
+        localChats[chatIndex] = {
+          ...localChats[chatIndex],
+          lastMessage: message,
+          updatedAt: timestamp
+        };
+      }
+    }
+    
+    localStorage.setItem('local_chats', JSON.stringify(localChats));
+    window.dispatchEvent(new Event('chatsUpdated'));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isSending) return;
+
+    setIsSending(true);
+    const userInput = input;
+    setInput('');
+
+    try {
+      const isNewChat = !currentChatId;
+      let chatId = isNewChat ? Date.now().toString() : currentChatId!;
+      const timestamp = new Date();
+
+      // Create user message
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: userInput,
+        createdAt: timestamp
+      };
+
+      // Add message to state immediately
+      setMessages(prev => [...prev, userMessage]);
+
+      if (session?.user?.id) {
+        if (isNewChat) {
+          // Create new chat with initial message
+          chatId = await createNewChat(session.user.id, chatId, userInput);
+          setCurrentChatId(chatId);
+        } else {
+          // Save message to existing chat, it will create the chat if it doesn't exist
+          await saveMessage(session.user.id, chatId, userMessage);
+        }
+      } else {
+        // Handle guest user
+        chatId = isNewChat ? Date.now().toString() : currentChatId!;
+        const guestMessages = JSON.parse(localStorage.getItem('local_chat_messages') || '{}');
+        if (!guestMessages[chatId]) {
+          guestMessages[chatId] = [];
+        }
+        guestMessages[chatId].push(userMessage);
+        localStorage.setItem('local_chat_messages', JSON.stringify(guestMessages));
+        saveGuestChat(chatId, userInput, isNewChat);
+        
+        if (isNewChat) {
+          setCurrentChatId(chatId);
+        }
+      }
+
+      // Show loading state
+      setIsLoading(true);
+
+      // Get AI response
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          model: selectedModel.value
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to get response');
+      const data = await res.json();
+
+      // Create assistant message
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.reply || 'Sorry, I could not generate a response.',
+        createdAt: new Date()
+      };
+
+      // Update UI with assistant message
+      setMessages(prev => [...prev, assistantMessage]);
+
+      if (session?.user?.id) {
+        // Save assistant message
+        await saveMessage(session.user.id, chatId, assistantMessage);
+        // Trigger chat list refresh
+        window.dispatchEvent(new Event('chatsUpdated'));
+      } else {
+        // Handle guest user assistant message
+        const updatedGuestMessages = JSON.parse(localStorage.getItem('local_chat_messages') || '{}');
+        if (!updatedGuestMessages[chatId]) {
+          updatedGuestMessages[chatId] = [];
+        }
+        updatedGuestMessages[chatId].push(assistantMessage);
+        localStorage.setItem('local_chat_messages', JSON.stringify(updatedGuestMessages));
+        saveGuestChat(chatId, assistantMessage.content);
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: 'Sorry, there was an error processing your request.',
+        createdAt: new Date()
+      }]);
+    } finally {
+      setIsSending(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Add useEffect to clear messages when starting a new chat
+  useEffect(() => {
+    if (!currentChatId) {
+      setMessages([]);
+    }
+  }, [currentChatId]);
+
+  const sidebarProps = {
+    onChatSelect: setCurrentChatId,
+    onNewChat: () => {
+      setCurrentChatId(null);
+      setMessages([]);
+    },
+    currentChatId
+  };
+
   return (
-    <main className="flex flex-col h-screen p-4 bg-gray-100">
-      <AuthControls />
-      <select
-        className="mb-4 p-2 border rounded bg-yellow-100"
-        value={model}
-        onChange={(e) => setModel(e.target.value)}
-      >
-        {availableModels.map((m) => (
-          <option key={m.value} value={m.value}>
-            {m.name}
-          </option>
-        ))}
-      </select>
-      {/* <div className="flex-1 overflow-y-auto space-y-2">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`p-2 rounded ${msg.role === 'user' ? 'bg-blue-200 self-end' : 'bg-gray-300 self-start'
-              }`}
-          >
-            {msg.content}
+    <div className="relative flex h-screen bg-[#1e1e1e]">
+      <ClientOnly>
+        <Sidebar {...sidebarProps} />
+      </ClientOnly>
+      
+      <main className="flex-1 flex flex-col ml-80 relative">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {isLoadingMessages ? (
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`p-3 max-w-[70%] ${
+                    message.role === 'user' 
+                      ? 'chat-bubble-right text-white' 
+                      : 'chat-bubble-left text-white'
+                  }`}
+                >
+                  {message.content}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Input Area */}
+        <div className="p-4 relative z-10">
+          <div className="flex items-center gap-3">
+            {/* Model Selection */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsOpen(!isOpen)} 
+                className="model-select-button"
+              >
+                <Bot size={16} />
+                <span>{selectedModel.name}</span>
+                <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Popup and backdrop */}
+              {isOpen && (
+                <>
+                  <div className="model-selector-backdrop" onClick={() => setIsOpen(false)} />
+                  <div className="model-selector-popup">
+                    <div className="text-sm text-white/50 mb-2 px-2">Select AI Model</div>
+                    {availableModels.map((model) => (
+                      <div
+                        key={model.value}
+                        className={`model-selector-option ${selectedModel.value === model.value ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedModel(model);
+                          setIsOpen(false);
+                        }}
+                      >
+                        <Bot size={16} className="mr-2" />
+                        {model.name}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type a message..."
+                className="w-full h-12 pl-4 pr-12 glass-input rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/20"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!input.trim() || isLoading}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+                  input.trim() && !isLoading
+                    ? 'text-blue-500 hover:text-blue-400'
+                    : 'text-white/30 cursor-not-allowed'
+                }`}
+              >
+                <Send size={20} />
+              </button>
+            </div>
           </div>
-        ))}
-      </div> */}
-      <div className="flex-1 overflow-y-auto space-y-2 bg-white p-2 rounded shadow-inner">
-  {messages.map((msg) => (
-    <div
-      key={msg.id}
-      className={`p-2 rounded max-w-[70%] whitespace-pre-wrap ${
-        msg.role === 'user' ? 'bg-blue-200 self-end ml-auto' : 'bg-gray-300 self-start mr-auto'
-      }`}
-    >
-      <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
+        </div>
+      </main>
     </div>
-  ))}
-</div>
-
-
-      <form className="flex mt-4" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 border rounded px-3 py-2"
-        />
-        <button
-          type="submit"
-          className="ml-2 px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          Send
-        </button>
-      </form>
-    </main>
   );
 }
