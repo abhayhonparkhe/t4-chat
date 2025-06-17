@@ -65,7 +65,7 @@ export default function HomePage() {
         localStorage.setItem('lastChatId', currentChatId);
       }
     }
-  }, [currentChatId, session?.user?.id]); // Remove loadMessages from here
+  }, [currentChatId, session?.user?.id, loadMessages]); // Add loadMessages to dependencies
 
   const saveGuestChat = (chatId: string, message: string, isNew = false) => {
     const localChats = JSON.parse(localStorage.getItem('local_chats') || '[]');
